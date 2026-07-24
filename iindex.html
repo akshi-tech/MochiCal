@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MochiCal — Cozy Digital Planner & Calendar</title>
+    <!-- Google Fonts: Fredoka & Quicksand for a soft, rounded aesthetic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ==========================================================================
+           1. CORE CSS & THEME VARIABLES
+           ========================================================================== */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #fce7f3 0%, #f3e8ff 50%, #e0f2fe 100%);
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --card-border: rgba(255, 255, 255, 0.9);
+            --primary-accent: #c084fc;
+            --primary-accent-light: #f3e8ff;
+            --secondary-accent: #f472b6;
+            --text-main: #374151;
+            --text-sub: #6b7280;
+            --clay-shadow: 0 10px 25px -5px rgba(192, 132, 252, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --cell-hover: rgba(255, 255, 255, 0.95);
+            --active-ring: #a855f7;
+            --badge-bg: #fae8ff;
+        }
+
+        /* Theme Variations */
+        [data-theme="sakura"] {
+            --bg-gradient: linear-gradient(135deg, #ffe4e6 0%, #fce7f3 50%, #f3e8ff 100%);
+            --primary-accent: #f472b6;
+            --primary-accent-light: #fce7f3;
+            --active-ring: #ec4899;
+        }
+
+        [data-theme="matcha"] {
+            --bg-gradient: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 50%, #e0f2fe 100%);
+            --primary-accent: #4ade80;
+            --primary-accent-light: #dcfce7;
+            --active-ring: #22c55e;
+        }
+
+        [data-theme="moonlight"] {
+            --bg-gradient: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 50%, #fae8ff 100%);
+            --primary-accent: #818cf8;
+            --primary-accent-light: #e0e7ff;
+            --active-ring: #6366f1;
+        }
+
+        [data-theme="sunny"] {
+            --bg-gradient: linear-gradient(135deg, #fef9c3 0%, #ffedd5 50%, #ffe4e6 100%);
+            --primary-accent: #fbbf24;
+            --primary-accent-light: #fef3c7;
+            --active-ring: #f59e0b;
+        }
+
+        [data-theme="teddy"] {
+            --bg-gradient: linear-gradient(135deg, #f5f5f4 0%, #e7e5e4 50%, #f5d0fe 100%);
+            --primary-accent: #a8a29e;
+            --primary-accent-light: #f5f5f4;
+            --active-ring: #78716c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* ==========================================================================
+           2. APP CONTAINER & LAYOUT
+           ========================================================================== */
+        .app-container {
+            width: 100%;
+            max-width: 1440px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid var(--card-border);
+            border-radius: 32px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+            display: grid;
+            grid-template-columns: 260px 1fr 300px;
+            grid-template-rows: 70px 1fr;
+            grid-template-areas:
+                "sidebar topbar topbar"
+                "sidebar main widgets";
+            overflow: hidden;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        /* Claymorphism Card Base Styling */
+        .clay-card {
+            background: var(--card-bg);
+            border: 1.5px solid var(--card-border);
+            border-radius: 24px;
+            box-shadow: var(--clay-shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        /* ==========================================================================
+           3. TOP NAVBAR
+           ========================================================================== */
+        .topbar {
+            grid-area: topbar;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 25px;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .month-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--text-main);
+            min-width: 160px;
+        }
+
+        .btn-icon {
+            background: white;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            font-size: 1.1rem;
+        }
+
+        .btn-icon:hover {
+            transform: scale(1.08);
+            background: var(--primary-accent-light);
+        }
+
+        .btn-pill {
+            background: white;
+            border: 1.5px solid var(--card-border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        }
+
+        .btn-pill:hover, .btn-pill.active {
+            background: var(--primary-accent);
+            color: white;
+        }
+
+        .view-toggles {
+            display: flex;
+            gap: 6px;
+            background: rgba(255,255,255,0.6);
+            padding: 4px;
+            border-radius: 24px;
+        }
+
+        .theme-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .theme-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .theme-dot:hover { transform: scale(1.2); }
+        .theme-dot.sakura { background: #f472b6; }
+        .theme-dot.matcha { background: #4ade80; }
+        .theme-dot.moonlight { background: #818cf8; }
+        .theme-dot.sunny { background: #fbbf24; }
+        .theme-dot.teddy { background: #a8a29e; }
+
+        /* ==========================================================================
+           4. LEFT SIDEBAR
+           ========================================================================== */
+        .sidebar {
+            grid-area: sidebar;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .profile-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary-accent-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border: 2px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        }
+
+        .profile-info h3 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.05rem;
+        }
+
+        .profile-info p {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+        }
+
+        .add-event-btn {
+            background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 18px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 8px 15px rgba(192, 132, 252, 0.3);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .add-event-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(192, 132, 252, 0.4);
+        }
+
+        .category-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .category-item:hover {
+            background: rgba(255,255,255,0.6);
+        }
+
+        .cat-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* ==========================================================================
+           5. MAIN CALENDAR GRID
+           ========================================================================== */
+        .main-calendar {
+            grid-area: main;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .calendar-header-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 500;
+            color: var(--text-sub);
+            margin-bottom: 10px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-auto-rows: 1fr;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .day-cell {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 8px;
+            border: 1px solid rgba(255,255,255,0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.2s ease;
+            position: relative;
+            min-height: 85px;
+        }
+
+        .day-cell:hover {
+            background: var(--cell-hover);
+            transform: scale(1.02);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.04);
+            z-index: 2;
+        }
+
+        .day-cell.other-month {
+            opacity: 0.35;
+        }
+
+        .day-number {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .day-cell.today .day-number {
+            background: var(--active-ring);
+            color: white;
+            box-shadow: 0 0 10px var(--primary-accent);
+        }
+
+        .event-chip {
+            background: var(--badge-bg);
+            border-left: 3px solid var(--primary-accent);
+            padding: 3px 6px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* ==========================================================================
+           6. PRODUCTIVITY WIDGETS
+           ========================================================================== */
+        .widgets-panel {
+            grid-area: widgets;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+        }
+
+        .widget-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Pomodoro Timer */
+        .timer-display {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.8rem;
+            text-align: center;
+            margin: 8px 0;
+            color: var(--primary-accent);
+        }
+
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Water Tracker */
+        .water-cups {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 6px;
+        }
+
+        .water-cup {
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .water-cup.filled {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        /* Habit Checklist */
+        .habit-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .habit-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .habit-item input[type="checkbox"] {
+            accent-color: var(--primary-accent);
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* ==========================================================================
+           7. EVENT MODAL
+           ========================================================================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 420px;
+            padding: 25px;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            transform: scale(0.9);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.2rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-sub);
+        }
+
+        .form-group input, .form-group select {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1.5px solid #e5e7eb;
+            font-family: 'Quicksand', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary-accent);
+        }
+
+        .mood-options {
+            display: flex;
+            gap: 8px;
+            font-size: 1.3rem;
+        }
+
+        .mood-opt {
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+
+        .mood-opt:hover, .mood-opt.selected {
+            transform: scale(1.25);
+            background: var(--primary-accent-light);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- TOP NAVBAR -->
+        <header class="topbar clay-card">
+            <div class="nav-controls">
+                <h2 class="month-title" id="currentMonthYear">July 2026</h2>
+                <button class="btn-icon" id="prevMonth">‹</button>
+                <button class="btn-icon" id="nextMonth">›</button>
+                <button class="btn-pill" id="todayBtn">Today</button>
+            </div>
+
+            <div class="view-toggles">
+                <button class="btn-pill active">Month</button>
+                <button class="btn-pill">Week</button>
+                <button class="btn-pill">Day</button>
+                <button class="btn-pill">Agenda</button>
+            </div>
+
+            <div class="theme-selector">
+                <span>Theme:</span>
+                <div class="theme-dot sakura" onclick="setTheme('sakura')"></div>
+                <div class="theme-dot matcha" onclick="setTheme('matcha')"></div>
+                <div class="theme-dot moonlight" onclick="setTheme('moonlight')"></div>
+                <div class="theme-dot sunny" onclick="setTheme('sunny')"></div>
+                <div class="theme-dot teddy" onclick="setTheme('teddy')"></div>
+            </div>
+        </header>
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar clay-card">
+            <div class="profile-card">
+                <div class="avatar">🧸</div>
+                <div class="profile-info">
+                    <h3>Mochi Study</h3>
+                    <p>🍵 Sipping tea & studying</p>
+                </div>
+            </div>
+
+            <button class="add-event-btn" id="openModalBtn">
+                <span>✨</span> New Event
+            </button>
+
+            <div>
+                <h4 style="font-family:'Fredoka'; font-size:0.9rem; margin-bottom:10px; color:var(--text-sub);">CATEGORIES</h4>
+                <ul class="category-list">
+                    <li class="category-item"><span class="cat-dot" style="background:#f472b6;"></span> 📚 Study</li>
+                    <li class="category-item"><span class="cat-dot" style="background:#c084fc;"></span> 🌸 Personal</li>
+                    <li class="category-item"><span class="cat-dot" style="background:#60a5fa;"></span> 💻 Work</li>
+                    <li class="category-item"><span class="cat-dot" style="background:#4ade80;"></span> ☕ Self Care</li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- MAIN CALENDAR VIEW -->
+        <main class="main-calendar clay-card">
+            <div class="calendar-header-days">
+                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </main>
+
+        <!-- RIGHT PRODUCTIVITY WIDGETS -->
+        <aside class="widgets-panel clay-card">
+            
+            <!-- Focus Timer -->
+            <div>
+                <div class="widget-title">⏱️ Focus Timer</div>
+                <div class="timer-display" id="timerDisplay">25:00</div>
+                <div class="timer-controls">
+                    <button class="btn-pill" id="startTimer">Start</button>
+                    <button class="btn-pill" id="resetTimer">Reset</button>
+                </div>
+            </div>
+
+            <hr style="border:none; border-top:1px solid rgba(0,0,0,0.05);">
+
+            <!-- Water Tracker -->
+            <div>
+                <div class="widget-title">💧 Hydration (Cups)</div>
+                <div class="water-cups" id="waterContainer">
+                    <span class="water-cup filled" onclick="toggleWater(0)">💧</span>
+                    <span class="water-cup filled" onclick="toggleWater(1)">💧</span>
+                    <span class="water-cup" onclick="toggleWater(2)">💧</span>
+                    <span class="water-cup" onclick="toggleWater(3)">💧</span>
+                    <span class="water-cup" onclick="toggleWater(4)">💧</span>
+                </div>
+            </div>
+
+            <hr style="border:none; border-top:1px solid rgba(0,0,0,0.05);">
+
+            <!-- Habit Tracker -->
+            <div>
+                <div class="widget-title">🌸 Daily Habits</div>
+                <div class="habit-list">
+                    <label class="habit-item"><input type="checkbox" checked> 📖 Read 15 mins</label>
+                    <label class="habit-item"><input type="checkbox" checked> 🧘 Morning Stretch</label>
+                    <label class="habit-item"><input type="checkbox"> 📝 Journal Entry</label>
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+
+    <!-- EVENT CREATION MODAL -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>✨ Create New Event</h3>
+                <button class="btn-icon" id="closeModalBtn">✕</button>
+            </div>
+            <div class="form-group">
+                <label>EVENT TITLE</label>
+                <input type="text" id="eventTitle" placeholder="e.g., 📚 Chemistry Revision">
+            </div>
+            <div class="form-group">
+                <label>DATE</label>
+                <input type="date" id="eventDate" value="2026-07-24">
+            </div>
+            <div class="form-group">
+                <label>MOOD / VIBE</label>
+                <div class="mood-options">
+                    <span class="mood-opt selected">😊</span>
+                    <span class="mood-opt">😌</span>
+                    <span class="mood-opt">🥰</span>
+                    <span class="mood-opt">😴</span>
+                    <span class="mood-opt">😎</span>
+                </div>
+            </div>
+            <button class="add-event-btn" id="saveEventBtn" style="margin-top:10px;">Save Event</button>
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC -->
+    <script>
+        // State Management initialized explicitly to July 2026
+        let currentDate = new Date(2026, 6, 1); // July 2026
+        const today = new Date(2026, 6, 24); // Today: July 24, 2026
+
+        let events = [
+            { date: '2026-07-24', title: '☕ Cafe Study Session', icon: '🌸' },
+            { date: '2026-07-24', title: '💻 Project Deadline', icon: '⭐' },
+            { date: '2026-07-28', title: '🍓 Picnic with Friends', icon: '🧺' }
+        ];
+
+        // Theme Switcher
+        function setTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+        }
+
+        // Render Calendar Grid
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const monthYearText = document.getElementById('currentMonthYear');
+            
+            grid.innerHTML = '';
+            
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", 
+                                "July", "August", "September", "October", "November", "December"];
+            
+            monthYearText.textContent = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const prevMonthDays = new Date(year, month, 0).getDate();
+
+            // Previous Month Fillers
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const cell = document.createElement('div');
+                cell.className = 'day-cell other-month';
+                cell.innerHTML = `<span class="day-number">${prevMonthDays - i}</span>`;
+                grid.appendChild(cell);
+            }
+
+            // Current Month Days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                
+                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    cell.classList.add('today');
+                }
+
+                cell.innerHTML = `<span class="day-number">${day}</span>`;
+
+                // Append Events
+                const dayEvents = events.filter(e => e.date === dateString);
+                dayEvents.forEach(evt => {
+                    const chip = document.createElement('div');
+                    chip.className = 'event-chip';
+                    chip.innerHTML = `<span>${evt.icon}</span> <span>${evt.title}</span>`;
+                    cell.appendChild(chip);
+                });
+
+                grid.appendChild(cell);
+            }
+        }
+
+        // Navigation Controls
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            currentDate = new Date(2026, 6, 1);
+            renderCalendar();
+        });
+
+        // Event Modal Controls
+        const modal = document.getElementById('modalOverlay');
+        document.getElementById('openModalBtn').addEventListener('click', () => modal.classList.add('active'));
+        document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('active'));
+
+        document.getElementById('saveEventBtn').addEventListener('click', () => {
+            const title = document.getElementById('eventTitle').value;
+            const date = document.getElementById('eventDate').value;
+            if (title && date) {
+                events.push({ date, title, icon: '✨' });
+                renderCalendar();
+                modal.classList.remove('active');
+                document.getElementById('eventTitle').value = '';
+            }
+        });
+
+        // Focus Timer Logic
+        let timerInterval;
+        let timeLeft = 25 * 60;
+        let isRunning = false;
+
+        document.getElementById('startTimer').addEventListener('click', () => {
+            if (isRunning) {
+                clearInterval(timerInterval);
+                document.getElementById('startTimer').textContent = 'Start';
+            } else {
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    const mins = Math.floor(timeLeft / 60);
+                    const secs = timeLeft % 60;
+                    document.getElementById('timerDisplay').textContent = 
+                        `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                    if (timeLeft <= 0) clearInterval(timerInterval);
+                }, 1000);
+                document.getElementById('startTimer').textContent = 'Pause';
+            }
+            isRunning = !isRunning;
+        });
+
+        document.getElementById('resetTimer').addEventListener('click', () => {
+            clearInterval(timerInterval);
+            timeLeft = 25 * 60;
+            isRunning = false;
+            document.getElementById('timerDisplay').textContent = '25:00';
+            document.getElementById('startTimer').textContent = 'Start';
+        });
+
+        // Water Tracker Toggle
+        function toggleWater(index) {
+            const cups = document.querySelectorAll('.water-cup');
+            cups.forEach((cup, i) => {
+                if (i <= index) cup.classList.add('filled');
+                else cup.classList.remove('filled');
+            });
+        }
+
+        // Initialize Calendar on load
+        renderCalendar();
+    </script>
+</body>
+</html>
